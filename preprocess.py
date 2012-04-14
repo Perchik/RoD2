@@ -85,9 +85,10 @@ def main():
 
     faceimages, projections, imgs = detectfaces.faceLBP(facelist)#detectfaces.facePCA(facelist)
     labels, nclusters = detectfaces.gMeansCluster(projections)
-    detectfaces.visualizeResults(faceimages, labels, nclusters)
+    #detectfaces.visualizeResults(faceimages, labels, nclusters)
 
     #add the individuals we found in the photos into the people database
+    i = 0
     for i in range(0,nclusters):
     	people.insert(str(i),0)
 
@@ -95,12 +96,11 @@ def main():
     faceindex = 0
     photoindex = 0
     for listing in facelist:
+    	facerects = listing[1:]
     	for entry in facerects:
     		faces.insert(photos[photoindex],imgs[faceindex],people[labels[faceindex]],labels[faceindex],entry[0],entry[1],entry[2],entry[3])
-    		faceindex = faceindex + 1
+    		faceindex = faceindex + 1   
     	photoindex = photoindex + 1
-
-
 
 if __name__ == '__main__':
 	main()
