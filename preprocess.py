@@ -16,6 +16,8 @@ import geotag
 import timecluster2 as timecluster
 from buzhug import Base
 import os
+import exif
+from PIL import Image
 
 def main():
 	#Make the database. We need tables for events, locations, photos, people, and faces
@@ -26,7 +28,7 @@ def main():
 	locations.create(('lat',float),('long',float),('name',str),mode="override")
 
 	photos = Base(os.getcwd()+"\\Databases\\photos.db")
-	photos.create(('path',str),('timestamp',str),('aestheticscore',int),('locationid',int), ('eventid',int),mode="override")
+	photos.create(('path',str),('timestamp',str),('aestheticscore',int),('locationid',int), ('eventid',int), ("width", int), ("height", int),mode="override")
 
 	people = Base(os.getcwd()+"\\Databases\\people.db")
 	people.create(('name',str),('age',int),mode="override")
@@ -82,7 +84,8 @@ def main():
 
 	#now we can finally insert each photo, with a name, event, and geotag
 	for i in range(len(photolist)):
-		photos.insert(photolist[i],eventLabels[i][1], 0,locations(name=geotaglist[i][1])[0].__id__,events(name=eventLabels[i][0])[0].__id__)
+		width, height = Image.open(photolist[i]).size
+		photos.insert(photolist[i],eventLabels[i][1], 0,locations(name=geotaglist[i][1])[0].__id__,events(name=eventLabels[i][0])[0].__id__, int(width), int(height))
 
 	#for all the images we just gathered, find the people and faces, and insert them into the database
 	facelist = []

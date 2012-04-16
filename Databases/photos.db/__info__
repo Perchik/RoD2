@@ -1,1 +1,1 @@
-__id__:int __version__:int path:str timestamp:str aestheticscore:int locationid:int eventid:int
+__id__:int __version__:int path:str timestamp:str aestheticscore:int locationid:int eventid:int width:int height:int
