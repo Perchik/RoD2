@@ -1,1 +1,1 @@
-__id__:int __version__:int pid:int photo:<base>C%3A%5CUsers%5CPSDUKES%5CDesktop%5C863%5CDatabases%5Cphotos.db thumbnail:str person:<base>C%3A%5CUsers%5CPSDUKES%5CDesktop%5C863%5CDatabases%5Cpeople.db x:int y:int w:int h:int
+__id__:int __version__:int photoid:int thumbnail:str personid:int x:int y:int w:int h:int
