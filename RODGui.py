@@ -168,7 +168,7 @@ class DisplayFrame(wx.Frame):
 		# == Set properties ==
 		# ====================
 		self.SetTitle("Reliving on Demand 2.0")
-		self.SetSize((1300,800))
+		self.SetSize((900,800))
 		self.peopleTab.SetScrollRate(0,10)
 		self.dirty = False
 
@@ -207,7 +207,7 @@ class DisplayFrame(wx.Frame):
 		self.topPanel.SetSizer(self.displaySizer)
 
 		topSizer.Add(self.selectorTabs,1,wx.EXPAND,0)
-		topSizer.Add(self.topPanel, 5, wx.EXPAND, 0)
+		topSizer.Add(self.topPanel, 4, wx.EXPAND, 0)
 
 		self.SetAutoLayout(True)
 		self.SetSizer(topSizer)
@@ -274,7 +274,8 @@ class DisplayFrame(wx.Frame):
 		try:
 			facesDB.open()
 			peopleDB.open()
-			for human in peopleDB:
+			for human in peopleDB.select(None).sort_by("+__id__"):
+				print " humans name is ", human.name
 				thumb = facesDB.select(['thumbnail'],pid=human.__id__)[0].thumbnail
 				self.People.append(os.getcwd()+"\\Images\\thumbnails\\" + thumb)
 				self.FaceButtons.append(wx.BitmapButton(self.peopleTab, -1, wx.Bitmap(os.getcwd()+"\\Images\\thumbnails\\" + thumb, wx.BITMAP_TYPE_ANY),style=wx.BU_AUTODRAW,name=str(human.__id__)))
@@ -282,13 +283,10 @@ class DisplayFrame(wx.Frame):
 				name_button = str(human.name)
 				if name_button == str(human.__id__):
 					name_button ="(unnamed)"
-				self.NameButtons.append(wx.TextCtrl(self.peopleTab,-1, name_button, name=str(human.__id__),style=wx.TE_CENTRE|wx.NO_BORDER|wx.TE_RICH))
-				#self.NameButtons[human.__id__].SetEditable(False)
+				self.NameButtons.append(wx.StaticText(self.peopleTab,-1, name_button, name=str(human.__id__),style=wx.TE_CENTRE))
 				if name_button=="(unnamed)":
 					self.NameButtons[human.__id__].SetToolTip(wx.ToolTip("Click on name to change"))
-				self.NameButtons[human.__id__].Bind(wx.EVT_TEXT,self.changeName)
-				self.NameButtons[human.__id__].Bind(wx.EVT_KILL_FOCUS,self.setName)
-
+				self.NameButtons[human.__id__].Bind(wx.EVT_LEFT_DOWN,self.changeName)
 
 		except IOError:
 			print "ERROR: Databases not found. (In func getPeople())"
@@ -302,10 +300,27 @@ class DisplayFrame(wx.Frame):
 	def changeName(self,  event):
 		"""changes the associated persons name"""
 		button = event.GetEventObject()
-		print "Changing Name of" , int(button.GetName())
 
-	def setName(self,event):
-		print  event.GetEventObject().GetName()
+
+		dialog = wx.TextEntryDialog(None, "Whaat is this person's name?","Change Name", button.GetLabel(), style=wx.OK|wx.CANCEL)
+		if dialog.ShowModal() == wx.ID_OK:
+			 newname = dialog.GetValue()
+		dialog.Destroy()
+
+		peopleDB=Base(os.getcwd()+"\\Databases\\people.db")
+		try:
+			peopleDB.open()
+			rec = peopleDB[int(button.GetName())]
+			if(len(newname)>1):
+				rec.update(name=str(newname))
+				button.SetLabel(newname)
+				button.CenterOnParent(wx.HORIZONTAL)
+
+
+		except IOError:
+			print "ERROR: Databases not found. (In func cahngeName())"
+
+
 
 	def getEvents(self):
 		"""gets all the events and populates the event pane"""

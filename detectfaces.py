@@ -4,20 +4,17 @@
 # detectfaces.py
 
 
-# Adapted from the following website:
+# Partia.ly adapted from the following website:
 # https://iss.jottit.com/python_opencv
-# Notable changes include:
-# - Updating to work with the new version of opencv
-# - Changing the minimum face size to 100x100 for improved accuracy and performance
+
 
 from ctypes import byref
 import cv2
 import cv2.cv as cv
-#import pylab
 import numpy
-from scipy.spatial.distance import euclidean
+from scipy.spatial.distance import sqeuclidean
 from sklearn.decomposition import PCA
-from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.cluster import KMeans
 import os
 import mahotas.features
 
@@ -94,14 +91,10 @@ def faceLBP(faces):
 			imglist.append("th" + str(thumb) + ".jpg")
 			thumb = thumb + 1
 			faceimages.append(subimage)
-
-			tinyimg = cv.CreateImage((100,100),cv.IPL_DEPTH_32F, 3)
-			cv.ConvertScale(thumbnail, tinyimg, 1/255.0)
-			#cv.Resize(subimage, tinyimg, cv.CV_INTER_LINEAR)
-
+			
 			#reserve memory for a grayscale image
 			gray = cv.CreateImage((subimage.width, subimage.height), 8, 1)
-			#reserve memory for the scaled down image, we choose 300x300
+			#reserve memory for the scaled down image
 			smallimage = cv.CreateImage((200,200), 8, 1 )
 
 			#convert original image to grayscale and then scale down
@@ -109,27 +102,21 @@ def faceLBP(faces):
 			cv.Resize(gray, smallimage, cv.CV_INTER_LINEAR)
 
 			#local binary pattern each little section of it and then append together for the feature
-			patchsize = 25
+			patchsize = 20
 			wIterator = 0
 			hIterator = 0
 			feature = []
-			for wIterator in range(8):
-				for hIterator in range(8):
+
+			for wIterator in range(10):
+				for hIterator in range(10):
 					section = cv.GetSubRect(smallimage,(wIterator * patchsize, hIterator * patchsize, patchsize, patchsize))
-					img = numpy.asarray(smallimage[:,:])
+					img = numpy.asarray(section[:,:])
 					#print img
 					lbpvector = mahotas.features.lbp(img,1,8)
 					feature.extend(lbpvector)
 					#print wIterator, hIterator
 			fitted.append(feature)
-
-			# img = numpy.asarray(smallimage)
-			# lbpvector = mahotas.features.lbp(numpy.asarray(subimage),1,8)
-			# facesamples.append(lbpvector)
-			# print lbpvector
-			# fitted.append(lbpvector)
-
-
+			
 	return faceimages, fitted, imglist
 
 
@@ -206,16 +193,17 @@ def gMeansCluster(samples):
 	clusters = []
 
 	nclusters = 0
-	threshold = 0.001
+	threshold = 0.01
 	highvariance = 0
 	totalvariance = 0
-	highvariancepercent = 0
+	highvariancepercent = 1
+	percentthreshold = .20
 
 	clusters = {}
 	oldpercent = 0
 	delta = 1
 
-	while (delta > threshold and nclusters < len(samples)):
+	while ((delta > threshold or highvariancepercent > percentthreshold)  and nclusters < len(samples)):
 		nclusters = nclusters + 1
 
 		#cluster
@@ -229,14 +217,13 @@ def gMeansCluster(samples):
 		pointcount = [0 for x in range(nclusters)]
 		for i in range(len(labels)):
 			pointcount[labels[i]] = pointcount[labels[i]] + 1
-			distance = euclidean(centers[labels[i]],samples[i])
+			distance = sqeuclidean(centers[labels[i]],samples[i])
 			variance[labels[i]] = variance[labels[i]] + distance * distance
 
 		print("nclusters is " + str(nclusters))
 		highvariance = 0
 		for i in range(nclusters):
 			variance[i] = variance[i] / (1.0 * pointcount[i])
-			#print (str(variance[i]) + " ",)
 			if variance[i] > highvariance:
 				highvariance = variance[i]
 			if nclusters == 1:

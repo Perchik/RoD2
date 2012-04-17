@@ -18,13 +18,13 @@ import copy
 import scipy.cluster.vq
 import math
 import re
-	
+
 #Roughly convert the timestamps to minutes
 def minuteConvert(time):
 	time = datetime.strptime(time, "%Y:%m:%d %H:%M:%S")
 	minutes = 60 * (24 * (365 *  time.year + 30 * ( time.month - 1) + ( time.day - 1)) +  time.hour) +  time.minute
 	return minutes
-	
+
 def convertToMinutes(timestamps):
 	minuteTimestamps = []
 	for picture in timestamps:
@@ -38,7 +38,7 @@ def timeDifferenceHistogram(minuteTimestamps):
 	timedeltas = [(0,minuteTimestamps[0][1])]
 	for i in range(1, len(minuteTimestamps)):
 		timedeltas.append((minuteTimestamps[i][0] - minuteTimestamps[i-1][0],minuteTimestamps[i][1]))
-		
+
 	#sort
 	timedeltas.sort()
 	return timedeltas
@@ -59,24 +59,24 @@ def scaleTimestamp(minutes):
 	#if greater than one month
 	else:
 		return math.pow(43200 * (minutes - 38815) + 1788, (1.0/4.0))
-	
+
 def twoMeansCluster(deltas):
 	#first we have to transform the data
 	transformedDeltas = []
 	for item in deltas:
 		transformedDeltas.append(scaleTimestamp(item[0]))
-	
+
 	#then we 2-means cluster it
 	initCenters = numpy.array((0, transformedDeltas[-1]))
 	centroids, labels = scipy.cluster.vq.kmeans2(numpy.array(transformedDeltas), initCenters, minit='matrix')
-	
+
 	#return the dividing line
 	return labels.tolist().index(1)
-	
-		
+
+
 def eventCluster(filelist):
 	filelist.sort()
-	
+
 	#put all the timestamps into a list
 	timestamps = []
 	orderedtimestamps = []
@@ -90,43 +90,46 @@ def eventCluster(filelist):
 			timestamps.append((time.strftime('%Y:%m:%d %H:%M:%S', time.gmtime(os.path.getctime(file))),file))
 			orderedtimestamps.append((file, time.strftime('%Y:%m:%d %H:%M:%S', time.gmtime(os.path.getctime(file)))))
 		i = i + 1
-		
+
 	#sort according to timestamp
 	timestamps.sort()
+	#print timestamps
 	orderedtimestamps.sort()
-	
+
 	minuteTimestamps = convertToMinutes(timestamps)
 	timedeltas = timeDifferenceHistogram(minuteTimestamps)
 	boundary = twoMeansCluster(timedeltas)
-	
+
 	stoplist = []
 	i = 0
 	for i in range(boundary, len(timedeltas)):
 		stoplist.append(timedeltas[i][1])
-		
+
 	stoplist.sort()
-	
+
 	i = 0
 	matchobj = re.match(r'^(.*\\)*(.*)\\(.*)\.((jpg)|(JPG))$', filelist[0])
 	textlabel = matchobj.group(2)
-	evtLabel = str(i) + ": " + textlabel
 	unique = []
-	unique.append(evtLabel)
 	labels = []
-	j = 0 
+	j = 0
+	#print "STOP"
+	#print stoplist
 	for j in range(len(filelist)):
-		if i < len(stoplist) and filelist[j][0] == stoplist[i]:
-			matchobj = re.match(r'^(.*\\)*(.*)\\(.*)\.((jpg)|(JPG))$',filelist[j][0])
+		#print filelist[j],stoplist[i]
+		#x = raw_input(">")
+		if i < len(stoplist) and filelist[j] == stoplist[i]:
+			matchobj = re.match(r'^(.*\\)*(.*)\\(.*)\.((jpg)|(JPG))$',filelist[j])
 			textlabel = matchobj.group(2)
 			evtLabel = str(i)+ ": " +textlabel
 			unique.append(evtLabel)
 			i = i + 1
 		labels.append((evtLabel, orderedtimestamps[j][1]))
-		
+
 	return labels, unique
-	
-	
-	
+
+
+
 	# i = 0
 	# evtLabel = 1#timestamps[0][0]
 	# labels = []
@@ -139,8 +142,8 @@ def eventCluster(filelist):
 			# evtLabel = evtLabel + 1
 			# boundary = boundary + 1
 		# labels.append(evtLabel)
-		
+
 	# print labels
-		
-	
-	
+
+
+
