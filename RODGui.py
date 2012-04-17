@@ -104,6 +104,32 @@ class DisplayFrame(wx.Frame):
 
 		#create the display
 		self.topPanel = wx.Panel(self, -1)
+		self.topPanel.Bind(wx.EVT_SIZE, self.onSize)
+
+		self.displayPanel = wx.Panel(self,-1) #panel for showing pictures
+
+		#create control buttons
+##		self.backBtn= wx.BitmapButton(self,-1, wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\back.png",wx.BITMAP_TYPE_PNG), style=wx.NO_BORDER)
+##		self.backBtn.SetBitmapHover(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\back_hover.png",wx.BITMAP_TYPE_PNG))
+##		self.backBtn.SetBitmapDisabled(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\back_disabled.png",wx.BITMAP_TYPE_PNG))
+##
+##		self.rwBtn= wx.BitmapButton(self,-1, wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\rw_hover.png",wx.BITMAP_TYPE_PNG), style=wx.NO_BORDER)
+##		self.rwBtn.SetBitmapHover(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\rw_hover.png",wx.BITMAP_TYPE_PNG))
+##		self.rwBtn.SetBitmapDisabled(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\rw_disabled.png",wx.BITMAP_TYPE_PNG))
+##
+##		self.playBtn=wx.BitmapButton(self,-1, wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\play_hover.png",wx.BITMAP_TYPE_PNG), style=wx.NO_BORDER)
+##		self.playBtn.SetBitmapSelected(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\pause.png",wx.BITMAP_TYPE_PNG))
+##		self.playBtn.SetBitmapHover(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\play_hover.png",wx.BITMAP_TYPE_PNG))
+##		self.playBtn.SetBitmapDisabled(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\play_disabled.png",wx.BITMAP_TYPE_PNG))
+##
+##		self.ffBtn= wx.BitmapButton(self,-1, wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\ff_hover.png",wx.BITMAP_TYPE_PNG), style=wx.NO_BORDER)
+##		self.ffBtn.SetBitmapHover(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\ff_hover.png",wx.BITMAP_TYPE_PNG))
+##		self.ffBtn.SetBitmapDisabled(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\ff_disabled.png",wx.BITMAP_TYPE_PNG))
+##
+##		self.skipBtn= wx.BitmapButton(self,-1, wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\next_hover.png",wx.BITMAP_TYPE_PNG), style=wx.NO_BORDER)
+##		self.skipBtn.SetBitmapHover(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\next_hover.png",wx.BITMAP_TYPE_PNG))
+##		self.skipBtn.SetBitmapDisabled(wx.Bitmap(os.getcwd()+"\\Images\\Buttons\\next_disabled.png",wx.BITMAP_TYPE_PNG))
+
 		# Associate menu/toolbar items with their handlers.
 		menuHandlers = [
 		(wx.ID_NEW,    self.doNew),
@@ -127,10 +153,7 @@ class DisplayFrame(wx.Frame):
 			self.Bind(wx.EVT_UPDATE_UI, combo[2], id = cid)
 
 
-		self.topPanel.Bind(wx.EVT_SIZE, self.onSize)
-
-
-		# Install our own method to handle closing the window.  This allows us
+ 		# Install our own method to handle closing the window.  This allows us
 		# to ask the user if he/she wants to save before closing the window, as
 		# well as keeping track of which windows are currently open.
 
@@ -171,10 +194,17 @@ class DisplayFrame(wx.Frame):
 		self.peopleTab.SetSizer(self.peopleSizer)
 		self.peopleSizer.Fit(self.peopleTab)
 
-
 		self.selectorTabs.AddPage(self.peopleTab,"People")
 		self.selectorTabs.AddPage(self.placesTab,"Places")
 		self.selectorTabs.AddPage(self.eventsTab,"Events")
+
+
+		self.controlSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+		self.displaySizer = wx.BoxSizer(wx.VERTICAL)
+  		self.displaySizer.Add(self.displayPanel)
+		self.displaySizer.Add(self.displaySizer)
+		self.topPanel.SetSizer(self.displaySizer)
 
 		topSizer.Add(self.selectorTabs,1,wx.EXPAND,0)
 		topSizer.Add(self.topPanel, 5, wx.EXPAND, 0)
@@ -237,6 +267,7 @@ class DisplayFrame(wx.Frame):
 	# == Reordering commands ==
 	# =========================
 	def getPeople(self):
+		print "Getting people"
 		"""gets all the faces and populates the people pane"""
 		facesDB=Base(os.getcwd() +"\\Databases\\faces.db")
 		peopleDB=Base(os.getcwd()+"\\Databases\\people.db")
@@ -251,7 +282,7 @@ class DisplayFrame(wx.Frame):
 				name_button = str(human.name)
 				if name_button == str(human.__id__):
 					name_button ="(unnamed)"
-				self.NameButtons.append(wx.TextCtrl(self.peopleTab,-1, name_button, name=str(human.__id__),style=wx.TE_CENTRE))
+				self.NameButtons.append(wx.TextCtrl(self.peopleTab,-1, name_button, name=str(human.__id__),style=wx.TE_CENTRE|wx.NO_BORDER|wx.TE_RICH))
 				#self.NameButtons[human.__id__].SetEditable(False)
 				if name_button=="(unnamed)":
 					self.NameButtons[human.__id__].SetToolTip(wx.ToolTip("Click on name to change"))
@@ -264,20 +295,18 @@ class DisplayFrame(wx.Frame):
 			exit(-1)
 
 	def selectPerson(self,  event):
-		"""changes the show to select a certain person
-.
-		"""
+		"""changes the show to select a certain person"""
 		button = event.GetEventObject()
 		print int(button.GetName())
 
 	def changeName(self,  event):
-		"""changes the associated persons name
-.
-		"""
+		"""changes the associated persons name"""
 		button = event.GetEventObject()
 		print "Changing Name of" , int(button.GetName())
+
 	def setName(self,event):
 		print  event.GetEventObject().GetName()
+
 	def getEvents(self):
 		"""gets all the events and populates the event pane"""
 	pass

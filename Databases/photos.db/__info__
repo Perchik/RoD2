@@ -1,1 +1,1 @@
-__id__:int __version__:int path:str timestamp:str aestheticscore:int location:<base>C%3A%5CUsers%5CPSDUKES%5CDesktop%5C863%5CDatabases%5Clocations.db event:<base>C%3A%5CUsers%5CPSDUKES%5CDesktop%5C863%5CDatabases%5Cevents.db
+__id__:int __version__:int path:str timestamp:str aestheticscore:int location:<base>C%3A%5CUsers%5CPSDUKES%5CDesktop%5CRoD2%5CDatabases%5Clocations.db event:<base>C%3A%5CUsers%5CPSDUKES%5CDesktop%5CRoD2%5CDatabases%5Cevents.db

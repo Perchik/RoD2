@@ -13,7 +13,7 @@ import os
 from buzhug import Base
 
 def main():
-	path = os.getcwd() +"\\Databases\\people.db"
+	path = os.getcwd() +"\\Databases\\training_images.db"
 	print path + "\n"
 	db=Base(path)
 	try:
@@ -22,9 +22,10 @@ def main():
 
 		for field in db.fields:
 			print field,db.fields[field]
-
+		print "len",len(db)
 		for record in db:
 			print record
+
 	except IOError:
 		print "no database there.."
 

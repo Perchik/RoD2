@@ -120,7 +120,7 @@ def faceLBP(faces):
 					#print img
 					lbpvector = mahotas.features.lbp(img,1,8)
 					feature.extend(lbpvector)
-					print wIterator, hIterator
+					#print wIterator, hIterator
 			fitted.append(feature)
 
 			# img = numpy.asarray(smallimage)
