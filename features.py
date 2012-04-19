@@ -25,11 +25,23 @@ def f3(): #pixel intensity
 			sum_ += S[i][j]
 	return sum_/(X*Y)
 
+def f5(): #rule of thirds
+	sum_=0
+	for i in range(Y/3, (2*Y)/3):
+		for j in range(X/3, (2*X)/3):
+			sum_ += H[i][j]
+	return sum_*9/(X*Y)
 def f6(): #rule of thirds
 	sum_=0
 	for i in range(Y/3, (2*Y)/3):
 		for j in range(X/3, (2*X)/3):
 			sum_ += S[i][j]
+	return sum_*9/(X*Y)
+def f7(): #rule of thirds
+	sum_=0
+	for i in range(Y/3, (2*Y)/3):
+		for j in range(X/3, (2*X)/3):
+			sum_ += V[i][j]
 	return sum_*9/(X*Y)
 
 def f10_12(): #texture of H
