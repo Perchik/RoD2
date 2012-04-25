@@ -22,10 +22,10 @@ from PIL import Image
 def main():
 	#Make the database. We need tables for events, locations, photos, people, and faces
 	events = Base(os.getcwd()+"\\Databases\\events.db")
-	events.create(('name',str),mode="override")
+	events.create(('name',str),('firsttime',str),('lasttime',str),mode="override")
 
 	locations = Base(os.getcwd()+"\\Databases\\locations.db")
-	locations.create(('lat',float),('long',float),('name',str),mode="override")
+	locations.create(('lat',float),('lon',float),('name',str),mode="override")
 
 	photos = Base(os.getcwd()+"\\Databases\\photos.db")
 	photos.create(('path',str),('timestamp',str),('aestheticscore',int),('locationid',int), ('eventid',int), ("width", int), ("height", int),mode="override")
@@ -41,6 +41,7 @@ def main():
 
 	photolist = []
 	geotaglist = []
+	print "geocoding directories"
 	for dirname, dirnames, filenames in os.walk(os.getcwd()+"\\Images\\photos"):
 		#geocode all the subdirectory names
 		for subdirname in dirnames:
@@ -68,6 +69,7 @@ def main():
 	#make a list to identify which event each photo is in
 
 	#print photolist
+	print "getting events"
 	eventLabels, uniqueEvents = timecluster.eventCluster(photolist)
 	#print "events: "
 	#print eventLabels
@@ -75,18 +77,21 @@ def main():
 
 	#insert the events into the event database
 	for label in uniqueEvents:
-		events.insert(label)
+		events.insert(label[1],"","")
 
 	#the events are already sorted according to photo names
 	#now sort the geotags and photolist according to photo names as well, so we'll have parallel lists
 	geotaglist.sort()
 	photolist.sort()
-
+	
 	#now we can finally insert each photo, with a name, event, and geotag
 	for i in range(len(photolist)):
 		width, height = Image.open(photolist[i]).size
-		photos.insert(photolist[i],eventLabels[i][1], 0,locations(name=geotaglist[i][1])[0].__id__,events(name=eventLabels[i][0])[0].__id__, int(width), int(height))
-
+		photos.insert(photolist[i],eventLabels[i][1],
+		 0,
+		 locations(name=geotaglist[i][1])[0].__id__,
+		 eventLabels[i][0], int(width), int(height))
+	print "finding faces"
 	#for all the images we just gathered, find the people and faces, and insert them into the database
 	facelist = []
 	for file in photolist:
@@ -110,6 +115,17 @@ def main():
 			faces.insert(photoindex,imgs[faceindex],people[labels[faceindex]].__id__,entry[0],entry[1],entry[2],entry[3])
 			faceindex = faceindex + 1
 		photoindex = photoindex + 1
-
+	
+	print "updating events"
+	#update the events table to include tthe start time
+	eventtimes=[]
+	for event in events.select(None).sort_by("+__id__"):
+		orderedPhotos = photos.select(eventid=event.__id__).sort_by("+timestamp")
+		events.update(event,firsttime=orderedPhotos[0].timestamp)
+		events.update(event,lasttime=orderedPhotos[-1].timestamp)
+	
+		
+		
+	print "Done"
 if __name__ == '__main__':
 	main()

@@ -121,10 +121,11 @@ def eventCluster(filelist):
 		if i < len(stoplist) and filelist[j] == stoplist[i]:
 			matchobj = re.match(r'^(.*\\)*(.*)\\(.*)\.((jpg)|(JPG))$',filelist[j])
 			textlabel = matchobj.group(2)
-			evtLabel = str(i)+ ": " +textlabel
+		#	evtLabel = str(i)+ ": " +textlabel
+			evtLabel = (i,textlabel)
 			unique.append(evtLabel)
 			i = i + 1
-		labels.append((evtLabel, orderedtimestamps[j][1]))
+		labels.append((evtLabel[0], orderedtimestamps[j][1]))
 
 	return labels, unique
 

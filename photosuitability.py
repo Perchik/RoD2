@@ -11,36 +11,37 @@
 from buzhug import Base
 import os
 from scipy.spatial.distance import euclidean
+import Bases as DB
 
 def photoSuitability(eventID, criteria, value):
 	order = []
-	try:
-		eventdb = Base(os.getcwd() + "\\Databases\\events.db")
-		peopledb = Base(os.getcwd() + "\\Databases\\people.db")
-		locationdb = Base(os.getcwd() + "\\Databases\\locations.db")
-		photosdb = Base(os.getcwd() + "\\Databases\\photos.db")
-		facedb = Base(os.getcwd() + "\\Databases\\faces.db")
-
-		eventdb.open()
-		peopledb.open()
-		locationdb.open()
-		photosdb.open()
-		facedb.open()
-
-	except IOError:
-		print "error"
-		return order
+##	try:
+##		eventsDB = Base(os.getcwd() + "\\Databases\\events.db")
+##		peopleDB = Base(os.getcwd() + "\\Databases\\people.db")
+##			 = Base(os.getcwd() + "\\Databases\\locations.db")
+##			 = Base(os.getcwd() + "\\Databases\\photos.db")
+##		facesDB = Base(os.getcwd() + "\\Databases\\faces.db")
+##
+##		eventsDB.open()
+##		peopleDB.open()
+##		placesDB.open()
+##		photosDB.open()
+##		facesDB.open()
+##
+##	except IOError as e:
+##		print "Error opening database", e 
+##		return order
 
 
 	if criteria == "time" or criteria == "location":
-		photos = photosdb.select(eventid=eventID).sort_by("+aestheticscore")
+		photos = DB.photos.select(eventid=eventID).sort_by("+aestheticscore")
 		for photo in photos:
 			order.append(photo.__id__)
 		order.reverse()
 
 	elif criteria == "people":
 		#print 'hi'
-		photos = photosdb.select(eventid=eventID)
+		photos = DB.photos.select(eventid=eventID)
 		scores = []
 		for photo in photos:
 			#calculate r1 through r5
@@ -49,7 +50,7 @@ def photoSuitability(eventID, criteria, value):
 			faceCentroid = 100
 
 			aesthetic = photo.aestheticscore
-			faces = facedb.select(photoid=photo.__id__)
+			faces = DB.faces.select(photoid=photo.__id__)
 			faceRatio = (1.0 * len(value)) / len(faces)
 			for face in faces:
 				for pid in value:
@@ -83,7 +84,7 @@ def photoSuitability(eventID, criteria, value):
 		print composites
 		for score in composites:
 			order.append(score[1])
-
+		
 	return order
 
 

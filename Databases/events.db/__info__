@@ -1,1 +1,1 @@
-__id__:int __version__:int name:str
+__id__:int __version__:int name:str firsttime:str lasttime:str

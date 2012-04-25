@@ -2,34 +2,22 @@
 # Spring 2012
 # CPSC 863
 # detectfaces.py
-# Face detection and clustering for replication of Reliving on Demand paper
 
-# Given a list of photos, detects all the faces in them and attempts to cluster
-# the faces so that the faces of each individual end up in their own cluster.
-# Several functions are currently unused but left in for historical purposes
-# to show the various methods we tried.
+
+# Partia.ly adapted from the following website:
+# https://iss.jottit.com/python_opencv
+
 
 from ctypes import byref
 import cv2
 import cv2.cv as cv
 import numpy
-from scipy.spatial.distance import *
-from scipy.cluster.vq import kmeans2
-from scipy.stats import anderson
-from scipy.stats import zscore
-from scipy.stats import tmean, tstd
-from scipy.stats import norm, f
+from scipy.spatial.distance import sqeuclidean
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-from sklearn import preprocessing
 import os
 import mahotas.features
-import random
-from math import ceil, pow, log, log10, pi, sqrt
 
-#Detects faces in the image using Haar cascades through OpenCV.
-# Partially adapted from the following website:
-# https://iss.jottit.com/python_opencv
 def detectFaceInImage(imagename):
 	#use the frontal face haar cascade
 	cascade_name = "lib/haarcascades/haarcascade_frontalface_alt.xml"
@@ -38,7 +26,8 @@ def detectFaceInImage(imagename):
 	#load the image
 	image = cv.LoadImage(imagename, cv.CV_LOAD_IMAGE_COLOR)
 
-	#set parameters for the Haar cascade, most notably, a minimum face size
+	#we're going to say that the minimum face size is 1/8 of the little image's width and height
+	#I realize this will cut out some faces but it should get the most salient ones
 	image_scale = 0.5
 	min_size = ( cv.Round(image_scale * image.height * 0.05), cv.Round(image_scale * image.width* 0.25) )
 	haar_scale = 1.2
@@ -67,18 +56,16 @@ def detectFaceInImage(imagename):
 	faces = cv.HaarDetectObjects(small_img, cascade, storage, haar_scale, min_neighbors, haar_flags, min_size)
 
 	#the first item in the returned face regions will be the filename
-	#the second item will be the x,y,w,h of the face within the image
 	returnfaceregions = [imagename]
 	if faces:
 		for r in faces:
 			returnfaceregions.append((int(r[0][0]*image_scale), int(r[0][1]*image_scale),int((r[0][2])*image_scale), int((r[0][3])*image_scale)))
 
-	#return the list of files/faces
 	return returnfaceregions
 
-# use local binary patterns to reduce our faces into a one-dimensional feature vector for clustering
-# also create thumbnails while we're at it
 def faceLBP(faces):
+	#build an array where every row represents a face
+	facesamples = []
 	faceimages = []
 	imglist = []
 	fitted = []
@@ -90,6 +77,8 @@ def faceLBP(faces):
 		bigimage = cv.LoadImage(faceset[0], cv.CV_LOAD_IMAGE_COLOR)
 		#the rest of the array is all face rectangles
 		faceset = faceset[1:]
+		for face in faceset:
+			print face
 
 		#get all the face subimages
 		for faceregion in faceset:
@@ -102,7 +91,7 @@ def faceLBP(faces):
 			imglist.append("th" + str(thumb) + ".jpg")
 			thumb = thumb + 1
 			faceimages.append(subimage)
-
+			
 			#reserve memory for a grayscale image
 			gray = cv.CreateImage((subimage.width, subimage.height), 8, 1)
 			#reserve memory for the scaled down image
@@ -122,115 +111,16 @@ def faceLBP(faces):
 				for hIterator in range(10):
 					section = cv.GetSubRect(smallimage,(wIterator * patchsize, hIterator * patchsize, patchsize, patchsize))
 					img = numpy.asarray(section[:,:])
-					#use a library for local binary pattern
+					#print img
 					lbpvector = mahotas.features.lbp(img,1,8)
-					#append this section's histogram onto all the others
 					feature.extend(lbpvector)
-			#fitted is the array of all the feature vectors
+					#print wIterator, hIterator
 			fitted.append(feature)
-
+			
 	return faceimages, fitted, imglist
 
-#projects a onto b, returning the scalar quantity
-#used as a part of g-means clustering
-def vectorProject(a,b):
-	abdot = numpy.vdot(a,b)
-	blensq =pow(numpy.linalg.norm(b), 2)
-	return float(abdot)/float(blensq)
-
-# g-means clustering
-def gMeansCluster(samples):
-	clusters = []
-
-	nclusters = 1
-	testFails = True
-	centers = []
-	labels = []
-
-	#run kmeans clustering
-	while testFails:
-		if nclusters == 1:
-			clusterer = KMeans(k=1)
-			#centers, labels = kmeans2(numpy.asarray(samples),k=1)
-		else:
-			clusterer = KMeans(k=len(centers),init=numpy.asarray(centers),n_init=1)
-			#centers, labels = kmeans2(numpy.asarray(samples),k=nclusters,minit=numpy.asarray(centers))
-
-		clusterer.fit(samples)
-		labels = clusterer.labels_
-		centers = clusterer.cluster_centers_
-
-		newcenters = []
-
-		#initialize two centers
-		for i in range(len(centers)):
-			center = centers[i]
-			subsamples = []
-			for j in range(len(labels)):
-				if labels[j] == i:
-					subsamples.append(samples[j])
-
-			if len(subsamples) > 1:
-				#cluster data
-				#first find eigenvalue/eigenvector
-				u,s,v = numpy.linalg.svd(numpy.asmatrix(subsamples))
-				eigen = s[0]
-				vector = v[:,0]
-
-				trialcenters = []
-				diff = vector * sqrt(2*eigen / pi)
-				j = 0
-				temp = []
-				for j in range(len(diff[:,0])):
-					temp.append(diff[j,0])
-
-				trialcenters.append((center+temp))
-				trialcenters.append((center-temp))
-
-				newclusterer = KMeans(k=2, init=numpy.asarray(trialcenters),n_init=1)
-				newclusterer.fit(subsamples)
-				labels = clusterer.labels_
-				centers = clusterer.cluster_centers_
-
-				v = trialcenters[1]-trialcenters[0]
-				onedim = []
-				#project the samples onto v
-				for x in subsamples:
-					onedim.append(vectorProject(x,v))
-
-				#perform statistical test
-				a2, critical, sig = anderson(onedim)
-				#print critical, sig
-				n = len(onedim)
-				corrected = a2 * (1+ 4.0/n  - 25.0 / (pow(n,2)))
-				print "a2 corr'",str(corrected)
-				print critical
-
-				#if we're above the critical value keep the new centers
-				if corrected > critical[-2]:
-					newcenters.extend(trialcenters)
-				#otherwise keep the old center
-				else:
-					newcenters.append(center)
-			else:
-				newcenters.append(center)
-
-		centers = newcenters
-
-		if nclusters == len(newcenters) or nclusters == len(samples):
-			testFails = False
-		else:
-			nclusters = len(newcenters)
-		print nclusters
-
-	return labels, nclusters
 
 
-#################################
-#   alternate implementations   #
-#################################
-
-# use the eigenfaces approach to make a feature vector to classify faces
 def facePCA(faces):
 	#build an array where every row represents a face
 	facesamples = []
@@ -276,6 +166,8 @@ def facePCA(faces):
 					vector.append(A[i,j])
 			facesamples.append(vector)
 
+		#print facesamples
+
 	#subtract the mean face from each row
 	avgvector = facesamples[0]
 	for i in range (1,len(facesamples)):
@@ -287,6 +179,8 @@ def facePCA(faces):
 	for face in facesamples:
 		face = numpy.asarray(face) - numpy.asarray(avgvector)
 
+	#facesamples = numpy.asarray(facesamples).transpose()
+
 	#now we have all the face samples in a gigantic array
 	#do PCA on them
 	pca = PCA(n_components = 0.90)
@@ -295,9 +189,7 @@ def facePCA(faces):
 
 	return faceimages, fitted, imglist
 
-# a simplified, purely variance based thresholding process to determine
-# how many clusters to used. replaced by gMeansCluster
-def varianceMeansCluster(samples):
+def gMeansCluster(samples):
 	clusters = []
 
 	nclusters = 0
@@ -311,8 +203,7 @@ def varianceMeansCluster(samples):
 	oldpercent = 0
 	delta = 1
 
-	nclusters = 0
-	while delta > threshold  and nclusters < len(samples):
+	while ((delta > threshold or highvariancepercent > percentthreshold)  and nclusters < len(samples)):
 		nclusters = nclusters + 1
 
 		#cluster
@@ -326,7 +217,6 @@ def varianceMeansCluster(samples):
 		pointcount = [0 for x in range(nclusters)]
 		for i in range(len(labels)):
 			pointcount[labels[i]] = pointcount[labels[i]] + 1
-
 			distance = sqeuclidean(centers[labels[i]],samples[i])
 			variance[labels[i]] = variance[labels[i]] + distance * distance
 
@@ -339,7 +229,7 @@ def varianceMeansCluster(samples):
 			if nclusters == 1:
 				totalvariance = highvariance
 
-		highvariancepercent = 1.0 * highvariance / totalvariance
+		highvariancepercent = highvariance / totalvariance
 		delta = numpy.abs(oldpercent-highvariancepercent)
 		oldpercent = highvariancepercent
 		print delta
@@ -348,7 +238,6 @@ def varianceMeansCluster(samples):
 
 	return labels, nclusters
 
-# shows the faces in the clusters--used to check our work
 def visualizeResults(samples,labels,nclusters):
 	clusters = [[] for x in range(nclusters)]
 	for i in range(len(labels)):
