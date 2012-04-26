@@ -182,8 +182,9 @@ menu_PLAY	= wx.NewId() #Show menu items
 menu_STOP	= wx.NewId()
 menu_RW	  = wx.NewId()
 menu_FF	  = wx.NewId()
+menu_SKIP = wx.NewId()
+menu_BACK  = wx.NewId()
 
-menu_ABOUT       = wx.NewId() #help menu item
 
 #Button IDs:
 play_btn = wx.NewId()
@@ -254,29 +255,31 @@ class MainFrame(wx.Frame):
 		#Setup our menu bar.
 		menuBar = wx.MenuBar()
 
-		self.fileMenu = wx.Menu()
-		self.fileMenu.Append(wx.ID_NEW,    "New\tCtrl-N", "Create a new photo library")
-		self.fileMenu.Append(wx.ID_OPEN,   "Open...\tCtrl-O", "Open an existing photo library")
-		self.fileMenu.Append(wx.ID_CLOSE,  "Close\tCtrl-W")
-		self.fileMenu.AppendSeparator()
-		self.fileMenu.Append(wx.ID_SAVE,   "Save\tCtrl-S")
-		self.fileMenu.Append(wx.ID_SAVEAS, "Save As...")
-		self.fileMenu.AppendSeparator()
-		self.fileMenu.Append(wx.ID_EXIT,    "Quit\tCtrl-Q")
-
-		menuBar.Append(self.fileMenu, "File")
+##		self.fileMenu = wx.Menu()
+##		self.fileMenu.Append(wx.ID_NEW,    "New\tCtrl-N", "Create a new photo library")
+##		self.fileMenu.Append(wx.ID_OPEN,   "Open...\tCtrl-O", "Open an existing photo library")
+##		self.fileMenu.Append(wx.ID_CLOSE,  "Close\tCtrl-W")
+##		self.fileMenu.AppendSeparator()
+##		self.fileMenu.Append(wx.ID_SAVE,   "Save\tCtrl-S")
+##		self.fileMenu.Append(wx.ID_SAVEAS, "Save As...")
+##		self.fileMenu.AppendSeparator()
+##		self.fileMenu.Append(wx.ID_EXIT,    "Quit\tCtrl-Q")
+##
+##		menuBar.Append(self.fileMenu, "File")
 
 		self.showMenu = wx.Menu()
 		self.showMenu.Append(menu_PLAY,     "Play\\Pause")
 		self.showMenu.Append(menu_FF,       "Fast Forward")
+		self.showMenu.Append(menu_SKIP,		"Next Event")
 		self.showMenu.Append(menu_RW,       "Rewind")
+		self.showMenu.Append(menu_BACK,		"Previous Event")
 
 		menuBar.Append(self.showMenu, "Show")
-
-		self.helpMenu = wx.Menu()
-		self.helpMenu.Append(menu_ABOUT, "About Reliving on Demand...")
-
-		menuBar.Append(self.helpMenu, "Help")
+##
+##		self.helpMenu = wx.Menu()
+##		self.helpMenu.Append(menu_ABOUT, "About Reliving on Demand...")
+##
+##		menuBar.Append(self.helpMenu, "Help")
 
 		self.SetMenuBar(menuBar)
 		#Menu Bar end
@@ -285,19 +288,20 @@ class MainFrame(wx.Frame):
 		self.statusBar = self.CreateStatusBar(1,0)
 		self.statusBar.SetStatusWidths([-1])
 		self.statusBar.SetStatusText("Welcome to RoD 2.0")
-
-		#Create a toolbar
-		tsize = (15,15)
-		self.toolbar = self.CreateToolBar(wx.TB_HORIZONTAL | wx.NO_BORDER | wx.TB_FLAT)
-
-		artBmp = wx.ArtProvider.GetBitmap
-		self.toolbar.AddSimpleTool(
-		    wx.ID_OPEN, artBmp(wx.ART_FILE_OPEN, wx.ART_TOOLBAR, tsize), "Open Library")
-		self.toolbar.AddSimpleTool(
-		    wx.ID_SAVE, artBmp(wx.ART_FILE_SAVE, wx.ART_TOOLBAR, tsize), "Save Library")
-		self.toolbar.AddSimpleTool(
-		    wx.ID_SAVEAS, artBmp(wx.ART_FILE_SAVE_AS, wx.ART_TOOLBAR, tsize),
-		    "Save Library As...")
+		
+##
+##		#Create a toolbar
+##		tsize = (15,15)
+##		self.toolbar = self.CreateToolBar(wx.TB_HORIZONTAL | wx.NO_BORDER | wx.TB_FLAT)
+##
+##		artBmp = wx.ArtProvider.GetBitmap
+##		self.toolbar.AddSimpleTool(
+##		    wx.ID_OPEN, artBmp(wx.ART_FILE_OPEN, wx.ART_TOOLBAR, tsize), "Open Library")
+##		self.toolbar.AddSimpleTool(
+##		    wx.ID_SAVE, artBmp(wx.ART_FILE_SAVE, wx.ART_TOOLBAR, tsize), "Save Library")
+##		self.toolbar.AddSimpleTool(
+##		    wx.ID_SAVEAS, artBmp(wx.ART_FILE_SAVE_AS, wx.ART_TOOLBAR, tsize),
+##		    "Save Library As...")
 
 		#Create our tabbed pane
 		self.selectorTabs = wx.Notebook(self, -1, style=0)
@@ -372,19 +376,11 @@ class MainFrame(wx.Frame):
 		
 		# Associate menu/toolbar items with their handlers.
 		menuHandlers = [
-		(wx.ID_NEW,    self.doNew),
-		(wx.ID_OPEN,   self.doOpen),
-		(wx.ID_CLOSE,  self.doClose),
-		(wx.ID_SAVE,   self.doSave),
-		(wx.ID_SAVEAS, self.doSaveAs),
-		(wx.ID_EXIT,   self.doExit),
-
-
 		(menu_PLAY,    self.doPlay),
 		(menu_RW,      self.doRewind),
 		(menu_FF,      self.doFastForward),
-
-		(menu_ABOUT, self.doShowAbout)]
+		(menu_SKIP,      self.doNext),
+		(menu_BACK,      self.doBack)]
 		for combo in menuHandlers:
 		    cid, handler = combo[:2]
 		    self.Bind(wx.EVT_MENU, handler, id = cid)
@@ -426,6 +422,8 @@ class MainFrame(wx.Frame):
 		self.EventButtons = []
 		self.PlaceButtons =[]
 		
+		
+		self.EventButtons = [None for i in range(len(DB.events))]
 		
 		#layout tabs
 		self.getPeople()
@@ -490,7 +488,7 @@ class MainFrame(wx.Frame):
 		topSizer.Add(self.displaySizer, 4, wx.EXPAND, 0)
  		self.SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_3DFACE))
 		
-		self.toolbar.Realize()
+		#self.toolbar.Realize()
 		self.SetAutoLayout(True)
 		self.SetSizer(topSizer)
 		self.Layout()
@@ -502,26 +500,26 @@ class MainFrame(wx.Frame):
     # == Menu Command Methods ==
     # ==========================
 
-	def doNew(self,event):
-		"""Creates a library"""
-		pass
-
-	def doOpen(self,event):
-		"""Opens a library"""
-		pass
-
-	def doClose(self,event):
-		"""closes this library. Prompts to save"""
-		pass
-
-
-	def doSave(self,event):
-		"""writes library to file"""
-		pass
-
-	def doSaveAs(self,event):
-		"""writes library to a different file"""
-		pass
+##	def doNew(self,event):
+##		"""Creates a library"""
+##		pass
+##
+##	def doOpen(self,event):
+##		"""Opens a library"""
+##		pass
+##
+##	def doClose(self,event):
+##		"""closes this library. Prompts to save"""
+##		pass
+##
+##
+##	def doSave(self,event):
+##		"""writes library to file"""
+##		pass
+##
+##	def doSaveAs(self,event):
+##		"""writes library to a different file"""
+##		pass
 
 	def doExit(self,event):
 		"""exits program prompts to save"""
@@ -596,9 +594,9 @@ class MainFrame(wx.Frame):
 		print "Next"
 		self.slideShow.Skip()
 
-	def doShowAbout(self,event):
-		"""shows about information"""
-		pass
+##	def doShowAbout(self,event):
+##		"""shows about information"""
+##		pass
 
 	# ==================
 	# == ROD commands ==
@@ -626,11 +624,12 @@ class MainFrame(wx.Frame):
 		
 	def getEvents(self):
 		print "Getting Events"
-		for event in DB.events:
+		for event in DB.events.select().sort_by("+firsttime"):
+			print event
 			eventTime =event.firsttime
 			eventTime = time.strptime(eventTime, "%Y:%m:%d %H:%M:%S")
 			eventTime = time.strftime("%b %d, %Y",eventTime)
-			self.EventButtons.append(wx.ToggleButton(self.eventsTab,-1, str(eventTime), name=str(event.__id__)))
+			self.EventButtons[event.__id__]=(wx.ToggleButton(self.eventsTab,-1, str(eventTime), name=str(event.__id__)))
 			self.EventButtons[event.__id__].SetToolTip(wx.ToolTip(event.name))
 			self.EventButtons[event.__id__].Bind(wx.EVT_TOGGLEBUTTON, self.selectEvent)
 					

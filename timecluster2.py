@@ -10,7 +10,7 @@
 # We also don't do color histogram techniques for event refinement yet.
 
 import os
-import exif
+import pyexiv2
 import time
 from datetime import datetime, timedelta, date
 import numpy
@@ -83,12 +83,13 @@ def eventCluster(filelist):
 	i = 0
 	for file in filelist:
 		try:
-			exifdata = exif.parse(file)
-			timestamps.append((exifdata['DateTime'], file))
-			orderedtimestamps.append((file, exifdata['DateTime']))
+			metadata=pyexiv2.ImageMetadata(file)
+			metadata.read()
+			timestamp = metadata['Exif.Image.DateTime'].value.strftime('%Y:%m:%d %H:%M:%S')
 		except:
-			timestamps.append((time.strftime('%Y:%m:%d %H:%M:%S', time.gmtime(os.path.getctime(file))),file))
-			orderedtimestamps.append((file, time.strftime('%Y:%m:%d %H:%M:%S', time.gmtime(os.path.getctime(file)))))
+			timestamp = time.strftime('%Y:%m:%d %H:%M:%S', time.gmtime(os.path.getctime(file)))
+		timestamps.append((timestamp,file))
+		orderedtimestamps.append((file, timestamp))
 		i = i + 1
 
 	#sort according to timestamp
@@ -96,6 +97,7 @@ def eventCluster(filelist):
 	#print timestamps
 	orderedtimestamps.sort()
 
+	#make the timedifference histogram and cluster to find the beginning deltas
 	minuteTimestamps = convertToMinutes(timestamps)
 	timedeltas = timeDifferenceHistogram(minuteTimestamps)
 	boundary = twoMeansCluster(timedeltas)
@@ -107,44 +109,24 @@ def eventCluster(filelist):
 
 	stoplist.sort()
 
+	#tag the photos based on their event id and their location
 	i = 0
 	matchobj = re.match(r'^(.*\\)*(.*)\\(.*)\.((jpg)|(JPG))$', filelist[0])
 	textlabel = matchobj.group(2)
 	unique = []
 	labels = []
 	j = 0
-	#print "STOP"
-	#print stoplist
+
 	for j in range(len(filelist)):
-		#print filelist[j],stoplist[i]
-		#x = raw_input(">")
 		if i < len(stoplist) and filelist[j] == stoplist[i]:
 			matchobj = re.match(r'^(.*\\)*(.*)\\(.*)\.((jpg)|(JPG))$',filelist[j])
 			textlabel = matchobj.group(2)
-		#	evtLabel = str(i)+ ": " +textlabel
 			evtLabel = (i,textlabel)
 			unique.append(evtLabel)
 			i = i + 1
 		labels.append((evtLabel[0], orderedtimestamps[j][1]))
 
 	return labels, unique
-
-
-
-	# i = 0
-	# evtLabel = 1#timestamps[0][0]
-	# labels = []
-	# for timestamp in timestamps:
-		# print "delta bound"
-		# print timedeltas[boundary][1]
-		# print "timestamp"
-		# print timestamp[1]
-		# if timestamp[1] == timedeltas[boundary][1]:
-			# evtLabel = evtLabel + 1
-			# boundary = boundary + 1
-		# labels.append(evtLabel)
-
-	# print labels
 
 
 

@@ -12,6 +12,7 @@
 # - Store in a Buzhug database for retrieval
 
 import detectfaces
+import AestheticScorer
 import geotag
 import timecluster2 as timecluster
 from buzhug import Base
@@ -20,6 +21,8 @@ import exif
 from PIL import Image
 
 def main():
+	AestheticScorer.LoadModel()
+	
 	#Make the database. We need tables for events, locations, photos, people, and faces
 	events = Base(os.getcwd()+"\\Databases\\events.db")
 	events.create(('name',str),('firsttime',str),('lasttime',str),mode="override")
@@ -80,15 +83,19 @@ def main():
 		events.insert(label[1],"","")
 
 	#the events are already sorted according to photo names
+	
+	
+	
 	#now sort the geotags and photolist according to photo names as well, so we'll have parallel lists
 	geotaglist.sort()
 	photolist.sort()
 	
 	#now we can finally insert each photo, with a name, event, and geotag
 	for i in range(len(photolist)):
+		print i, photolist[i]
 		width, height = Image.open(photolist[i]).size
 		photos.insert(photolist[i],eventLabels[i][1],
-		 0,
+		 AestheticScorer.getScore(photolist[i]),
 		 locations(name=geotaglist[i][1])[0].__id__,
 		 eventLabels[i][0], int(width), int(height))
 	print "finding faces"
@@ -97,8 +104,8 @@ def main():
 	for file in photolist:
 		facelist.append(detectfaces.detectFaceInImage(file))
 
-	faceimages, projections, imgs = detectfaces.faceLBP(facelist)#detectfaces.facePCA(facelist)
-	labels, nclusters = detectfaces.gMeansCluster(projections)
+	faceimages, projections, imgs, minFaces = detectfaces.faceLBP(facelist)#detectfaces.facePCA(facelist)
+	labels, nclusters = detectfaces.gMeansCluster(projections, minFaces)
 	#detectfaces.visualizeResults(faceimages, labels, nclusters)
 
 	#add the individuals we found in the photos into the people database

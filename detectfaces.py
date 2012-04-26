@@ -85,6 +85,7 @@ def faceLBP(faces):
 
 	thumb = 0
 
+	minFaces = []
 	for faceset in faces:
 		#load in an image--its name is held in the first array position
 		bigimage = cv.LoadImage(faceset[0], cv.CV_LOAD_IMAGE_COLOR)
@@ -92,6 +93,12 @@ def faceLBP(faces):
 		faceset = faceset[1:]
 
 		#get all the face subimages
+		append = False
+		if len(faceset) > len(minFaces):
+			print 'hi',len(faceset)
+			minFaces = []
+			append = True
+			
 		for faceregion in faceset:
 			#get the subrectangle
 			subimage = cv.GetSubRect(bigimage, faceregion)
@@ -128,8 +135,14 @@ def faceLBP(faces):
 					feature.extend(lbpvector)
 			#fitted is the array of all the feature vectors
 			fitted.append(feature)
+			if append:
+				minFaces.append(feature)
 
-	return faceimages, fitted, imglist
+
+	#print minFaces
+	#print len(minFaces)
+	#print numpy.asarray(minFaces)
+	return faceimages, fitted, imglist, minFaces
 
 #projects a onto b, returning the scalar quantity
 #used as a part of g-means clustering
@@ -139,18 +152,19 @@ def vectorProject(a,b):
 	return float(abdot)/float(blensq)
 
 # g-means clustering
-def gMeansCluster(samples):
+def gMeansCluster(samples, minFaces):
 	clusters = []
 
-	nclusters = 1
+	nclusters = len(minFaces)
+	print "len",len(minFaces)
 	testFails = True
 	centers = []
 	labels = []
 
 	#run kmeans clustering
 	while testFails:
-		if nclusters == 1:
-			clusterer = KMeans(k=1)
+		if nclusters == len(minFaces):
+			clusterer = KMeans(k=len(minFaces),init=numpy.asarray(minFaces),n_init=1)
 			#centers, labels = kmeans2(numpy.asarray(samples),k=1)
 		else:
 			clusterer = KMeans(k=len(centers),init=numpy.asarray(centers),n_init=1)
@@ -203,8 +217,8 @@ def gMeansCluster(samples):
 				#print critical, sig
 				n = len(onedim)
 				corrected = a2 * (1+ 4.0/n  - 25.0 / (pow(n,2)))
-				print "a2 corr'",str(corrected)
-				print critical
+				#print "a2 corr'",str(corrected)
+				#print critical
 
 				#if we're above the critical value keep the new centers
 				if corrected > critical[-2]:
@@ -330,7 +344,7 @@ def varianceMeansCluster(samples):
 			distance = sqeuclidean(centers[labels[i]],samples[i])
 			variance[labels[i]] = variance[labels[i]] + distance * distance
 
-		print("nclusters is " + str(nclusters))
+		#print("nclusters is " + str(nclusters))
 		highvariance = 0
 		for i in range(nclusters):
 			variance[i] = variance[i] / (1.0 * pointcount[i])
